@@ -49,6 +49,14 @@ class AdventCalendarController extends Controller
             return back();
         }
 
+        if (! $day->isAvailableOn(now()->startOfDay())) {
+            throw ValidationException::withMessages([
+                'challenge' => __('Patience ! Cette case s\'ouvrira le :date.', [
+                    'date' => $day->available_at->isoFormat('D MMMM YYYY'),
+                ]),
+            ]);
+        }
+
         $this->validateAnswer($request, $day);
 
         $user->solvers()->attach($day->getKey(), ['solved_at' => now()]);
@@ -189,6 +197,6 @@ class AdventCalendarController extends Controller
         $normalized = transliterator_transliterate('Any-Latin; Latin-ASCII', $normalized)
             ?? strtr($normalized, ['é' => 'e', 'è' => 'e', 'ê' => 'e', 'à' => 'a', 'ù' => 'u', 'ç' => 'c', 'ï' => 'i', 'ô' => 'o']);
 
-        return (string) preg_replace('/[^\p{L}\p{N}\s]/u', '', preg_replace('/\s+/', ' ', $normalized));
+        return (string) trim((string) preg_replace('/[^\p{L}\p{N}\s]/u', '', preg_replace('/\s+/', ' ', $normalized)));
     }
 }

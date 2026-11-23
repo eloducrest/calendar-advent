@@ -32,6 +32,17 @@ class CalendarDayFactory extends Factory
         ];
     }
 
+    public function riddle(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'challenge_type' => CalendarDay::CHALLENGE_RIDDLE,
+            'challenge_data' => [
+                'question' => fake()->sentence(),
+                'accepted_answers' => [fake()->word()],
+            ],
+        ]);
+    }
+
     public function qcm(): static
     {
         return $this->state(fn (array $attributes): array => [
