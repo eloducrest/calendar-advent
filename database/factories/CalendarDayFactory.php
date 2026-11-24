@@ -67,6 +67,17 @@ class CalendarDayFactory extends Factory
         ]);
     }
 
+    /**
+     * Override the mini-game variant of a game day.
+     */
+    public function gameVariant(string $game): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'challenge_type' => CalendarDay::CHALLENGE_GAME,
+            'challenge_data' => array_merge((array) $attributes['challenge_data'], ['game' => $game]),
+        ]);
+    }
+
     public function availableOn(Carbon $date): static
     {
         return $this->state(fn (array $attributes): array => [

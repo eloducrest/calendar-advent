@@ -139,6 +139,67 @@ test('game challenges are unlocked once the mini-game is completed', function ()
     ]);
 });
 
+test('each game variant is exposed to the calendar and solved the same way', function () {
+    $user = User::factory()->create();
+
+    foreach (['memory', 'simon', 'puzzle', 'mole'] as $variant) {
+        $day = CalendarDay::factory()->gameVariant($variant)->availableOn(Carbon::yesterday())->create();
+
+        $this->actingAs($user)
+            ->get(route('calendar.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('days.0.game_variant', $variant));
+
+        $this->from(route('calendar.index'))
+            ->actingAs($user)
+            ->post(route('calendar.days.solve', $day), ['completed' => 1]);
+
+        $this->assertDatabaseHas('calendar_day_user', [
+            'calendar_day_id' => $day->id,
+            'user_id' => $user->id,
+        ]);
+
+        $day->delete();
+    }
+});
+
+test('the mini-game variant can be changed from the edit screen', function () {
+    $user = User::factory()->create();
+    $day = CalendarDay::factory()->game()->create();
+
+    $response = $this->actingAs($user)->patch(route('calendar.days.update', $day), [
+        'challenge_type' => 'game',
+        'available_at' => Carbon::createFromDate(null, 12, 8)->toDateString(),
+        'game_variant' => 'puzzle',
+        'game_title' => 'Taquin du 8',
+        'game_instructions' => 'Remets les tuiles en ordre.',
+        'gift_title' => 'Cadeau taquin',
+    ]);
+
+    $response->assertRedirect(route('calendar.edit'));
+
+    $day->refresh();
+    expect($day->challenge_data)->toMatchArray([
+        'game' => 'puzzle',
+        'title' => 'Taquin du 8',
+        'instructions' => 'Remets les tuiles en ordre.',
+    ]);
+});
+
+test('the mini-game variant is required when editing a game day', function () {
+    $user = User::factory()->create();
+    $day = CalendarDay::factory()->game()->create();
+
+    $response = $this->actingAs($user)
+        ->patch(route('calendar.days.update', $day), [
+            'challenge_type' => 'game',
+            'available_at' => Carbon::tomorrow()->toDateString(),
+            'game_title' => 'Titre sans variante',
+        ]);
+
+    $response->assertSessionHasErrors('game_variant');
+});
+
 test('gift content stays hidden in the calendar until the challenge is solved', function () {
     $user = User::factory()->create();
     $day = CalendarDay::factory()->availableOn(Carbon::yesterday())->create([

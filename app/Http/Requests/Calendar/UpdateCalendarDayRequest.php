@@ -15,6 +15,7 @@ use Illuminate\Http\UploadedFile;
  * @property array<int, string>|null $qcm_options
  * @property int|null $qcm_correct_index
  * @property string|null $game_title
+ * @property string|null $game_variant
  * @property string|null $game_instructions
  * @property string|null $game_symbols
  * @property string $available_at
@@ -45,6 +46,7 @@ class UpdateCalendarDayRequest extends FormRequest
             'qcm_correct_index' => ['required_if:challenge_type,qcm', 'nullable', 'integer', 'between:0,2'],
 
             'game_title' => ['required_if:challenge_type,game', 'nullable', 'string', 'max:120'],
+            'game_variant' => ['required_if:challenge_type,game', 'nullable', 'in:memory,simon,puzzle,mole'],
             'game_instructions' => ['nullable', 'string', 'max:500'],
             'game_symbols' => ['nullable', 'string', 'max:255'],
 
@@ -71,7 +73,7 @@ class UpdateCalendarDayRequest extends FormRequest
                 'correct_index' => (int) $this->integer('qcm_correct_index'),
             ],
             CalendarDay::CHALLENGE_GAME => [
-                'game' => 'memory',
+                'game' => $this->string('game_variant')->isEmpty() ? 'memory' : $this->string('game_variant')->value(),
                 'title' => $this->string('game_title')->value(),
                 'instructions' => $this->string('game_instructions')->value(),
                 'symbols' => array_values(array_filter(array_map(

@@ -85,9 +85,24 @@ class CalendarDayController extends Controller
 
         return match ($day->challenge_type) {
             CalendarDay::CHALLENGE_QCM => (string) ($data['question'] ?? ''),
-            CalendarDay::CHALLENGE_GAME => (string) ($data['title'] ?? ''),
+            CalendarDay::CHALLENGE_GAME => $this->gameLabels()[(string) (($data['game'] ?? null) ?: 'memory')].' — '.(string) ($data['title'] ?? ''),
             default => (string) ($data['question'] ?? ''),
         };
+    }
+
+    /**
+     * French labels of the mini-game variants, keyed by their stored name.
+     *
+     * @return array<string, string>
+     */
+    private function gameLabels(): array
+    {
+        return [
+            'memory' => 'Memory',
+            'simon' => 'Simon',
+            'puzzle' => 'Taquin',
+            'mole' => 'Frappe-Taupe',
+        ];
     }
 
     /**
@@ -108,6 +123,7 @@ class CalendarDayController extends Controller
             'qcm_options' => array_pad((array) ($data['options'] ?? []), 3, ''),
             'qcm_correct_index' => $data['correct_index'] ?? 0,
             'game_title' => $data['title'] ?? '',
+            'game_variant' => (string) (($data['game'] ?? null) ?: 'memory'),
             'game_instructions' => $data['instructions'] ?? '',
             'game_symbols' => implode(', ', (array) ($data['symbols'] ?? [])),
             'gift_title' => $day->gift_title ?? '',

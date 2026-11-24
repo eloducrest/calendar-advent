@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, type Component } from 'vue';
 import { Form } from '@inertiajs/vue3';
 import { solve } from '@/actions/App/Http/Controllers/Calendar/AdventCalendarController';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,10 @@ import { Label } from '@/components/ui/label';
 import type { CalendarDayItem } from '@/types';
 import GiftReveal from './GiftReveal.vue';
 import MemoryGame from './MemoryGame.vue';
+import PuzzleGame from './PuzzleGame.vue';
+import SimonGame from './SimonGame.vue';
+import WhackAMoleGame from './WhackAMoleGame.vue';
+import type { GameVariant } from '@/types';
 
 const props = defineProps<{
     day: CalendarDayItem;
@@ -26,6 +30,13 @@ const emit = defineEmits<{
 }>();
 
 const selectedOption = ref<number | null>(null);
+
+const GAME_COMPONENTS: Record<GameVariant, Component> = {
+    memory: MemoryGame,
+    simon: SimonGame,
+    puzzle: PuzzleGame,
+    mole: WhackAMoleGame,
+};
 </script>
 
 <template>
@@ -99,7 +110,11 @@ const selectedOption = ref<number | null>(null);
                 <template v-else>
                     <p class="text-center text-sm font-medium">{{ day.game_title }}</p>
                     <input type="hidden" name="completed" value="1" />
-                    <MemoryGame :symbols="day.game_symbols ?? []" @solved="submit()" />
+                    <component
+                        :is="GAME_COMPONENTS[day.game_variant ?? 'memory']"
+                        v-bind="day.game_variant === 'memory' || !day.game_variant ? { symbols: day.game_symbols ?? [] } : {}"
+                        @solved="submit()"
+                    />
                     <InputError :message="errors.completed || errors.challenge" />
                 </template>
 

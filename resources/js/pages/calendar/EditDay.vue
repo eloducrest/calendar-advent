@@ -38,6 +38,7 @@ const { day } = defineProps<{
 const page = usePage();
 
 const challengeType = ref<string>(day.challenge_type);
+const gameVariant = ref<string>(day.game_variant);
 const processing = ref(false);
 
 const challengeTypeLabels: Record<string, string> = {
@@ -46,8 +47,19 @@ const challengeTypeLabels: Record<string, string> = {
     game: 'Mini-jeu',
 };
 
+const gameVariantLabels: Record<string, string> = {
+    memory: 'Memory (paires)',
+    simon: 'Simon (séquence à répéter)',
+    puzzle: 'Taquin (tuiles à remettre en ordre)',
+    mole: 'Frappe-Taupe',
+};
+
 function onChallengeTypeChange(event: Event): void {
     challengeType.value = (event.target as HTMLSelectElement).value;
+}
+
+function onGameVariantChange(event: Event): void {
+    gameVariant.value = (event.target as HTMLSelectElement).value;
 }
 
 function errorFor(key: string): string | undefined {
@@ -207,6 +219,26 @@ function save(event: Event): void {
 
                     <template v-else>
                         <div class="grid gap-2">
+                            <Label for="game_variant">Variante du mini-jeu</Label>
+                            <select
+                                id="game_variant"
+                                name="game_variant"
+                                class="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring"
+                                @change="onGameVariantChange"
+                            >
+                                <option
+                                    v-for="(label, variant) in gameVariantLabels"
+                                    :key="variant"
+                                    :value="variant"
+                                    :selected="gameVariant === variant"
+                                >
+                                    {{ label }}
+                                </option>
+                            </select>
+                            <InputError :message="errorFor('game_variant')" />
+                        </div>
+
+                        <div class="grid gap-2">
                             <Label for="game_title">Titre du mini-jeu</Label>
                             <Input
                                 id="game_title"
@@ -225,12 +257,12 @@ function save(event: Event): void {
                                 id="game_instructions"
                                 name="game_instructions"
                                 rows="2"
-                                class="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring" 
+                                class="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring"
                             >{{ day.game_instructions }}</textarea>
                             <InputError :message="errorFor('game_instructions')" />
                         </div>
 
-                        <div class="grid gap-2">
+                        <div v-if="gameVariant === 'memory'" class="grid gap-2">
                             <Label for="game_symbols">Symboles des cartes (séparés par des virgules, 6 pour 12 cartes)</Label>
                             <Input
                                 id="game_symbols"
@@ -242,6 +274,14 @@ function save(event: Event): void {
                             />
                             <InputError :message="errorFor('game_symbols')" />
                         </div>
+
+                        <p v-else class="rounded-lg bg-muted p-3 text-xs text-muted-foreground">
+                            {{ gameVariant === 'simon'
+                                ? 'Simon : 5 manches de séquence de couleurs à répéter. Aucun réglage nécessaire.'
+                                : gameVariant === 'puzzle'
+                                    ? 'Taquin : remettre 8 tuiles emoji en ordre. Aucun réglage nécessaire.'
+                                    : 'Frappe-Taupe : frapper 10 taupes. Aucun réglage nécessaire.' }}
+                        </p>
                     </template>
                 </CardContent>
             </Card>

@@ -1,5 +1,7 @@
 export type DayStatus = 'locked' | 'available' | 'solved';
 
+export type GameVariant = 'memory' | 'simon' | 'puzzle' | 'mole';
+
 export type CalendarDayGift = {
     title: string | null;
     message: string | null;
@@ -16,6 +18,7 @@ export type CalendarDayItem = {
     challenge_type: 'riddle' | 'qcm' | 'game';
     challenge_question: string | null;
     qcm_options: string[] | null;
+    game_variant: GameVariant | null;
     game_title: string | null;
     game_instructions: string | null;
     game_symbols: string[] | null;
@@ -44,6 +47,7 @@ export type CalendarDayEditItem = {
     qcm_question: string;
     qcm_options: string[];
     qcm_correct_index: number;
+    game_variant: string;
     game_title: string;
     game_instructions: string;
     game_symbols: string;

@@ -84,6 +84,9 @@ class AdventCalendarController extends Controller
             'status' => $this->status($isAvailable, $solved),
             'available_at' => $day->available_at->toDateString(),
             'challenge_type' => $day->challenge_type,
+            'game_variant' => $day->challenge_type === CalendarDay::CHALLENGE_GAME
+                ? (string) (($data['game'] ?? null) ?: 'memory')
+                : null,
             // The challenge statement is public; only the answers stay on the server.
             'challenge_question' => in_array($day->challenge_type, [CalendarDay::CHALLENGE_RIDDLE, CalendarDay::CHALLENGE_QCM], true)
                 ? (string) ($data['question'] ?? '')

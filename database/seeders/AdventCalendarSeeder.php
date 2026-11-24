@@ -25,12 +25,13 @@ class AdventCalendarSeeder extends Seeder
             'correct_index' => $correctIndex,
         ];
 
-        $game = fn (string $title, string $instructions, array $symbols): array => [
-            'game' => 'memory',
-            'title' => $title,
-            'instructions' => $instructions,
-            'symbols' => $symbols,
-        ];
+        $game = function (string $variant, string $title, string $instructions, array $symbols = []): array {
+            return array_merge([
+                'game' => $variant,
+                'title' => $title,
+                'instructions' => $instructions,
+            ], $variant === 'memory' ? ['symbols' => $symbols] : []);
+        };
 
         $days = [
             [
@@ -47,6 +48,7 @@ class AdventCalendarSeeder extends Seeder
             [
                 'challenge_type' => CalendarDay::CHALLENGE_GAME,
                 'challenge_data' => $game(
+                    'memory',
                     'Trouve les paires',
                     'Retourne les cartes et retrouve toutes les paires.',
                     ['🎄', '⭐', '🎁', '❄️', '🔔', '🕯️'],
@@ -91,9 +93,9 @@ class AdventCalendarSeeder extends Seeder
             [
                 'challenge_type' => CalendarDay::CHALLENGE_GAME,
                 'challenge_data' => $game(
-                    'Mémoire du 6 décembre',
-                    'Un petit entraînement cérébral pour patienter jusqu\'au week-end.',
-                    ['🎁', '🍪', '🌟', '🧦', '🥂', '🎼'],
+                    'simon',
+                    'Simon du 6 décembre',
+                    'Observe la séquence de couleurs puis répète-la, sur 5 manches.',
                 ),
                 'gift_title' => 'Le réveil musical',
                 'gift_message' => 'Cérébralement vainqueur, voici ta récompense.',
@@ -129,9 +131,9 @@ class AdventCalendarSeeder extends Seeder
             [
                 'challenge_type' => CalendarDay::CHALLENGE_GAME,
                 'challenge_data' => $game(
-                    'Mémoire du 10 décembre',
-                    'La mémoire du Père Noël n\'est pas ce qu\'elle était. Prouve que la tienne est meilleure !',
-                    ['🕯️', '🎅', '⛄', '🍊', '🥧', '🎧'],
+                    'mole',
+                    'Frappe-Taupe de Noël',
+                    'Frappe 10 taupes qui sortent des trous de neige !',
                 ),
                 'gift_title' => 'Le playlist de Noël',
                 'gift_message' => 'Mémoire de champion(ne) !',
@@ -176,9 +178,9 @@ class AdventCalendarSeeder extends Seeder
             [
                 'challenge_type' => CalendarDay::CHALLENGE_GAME,
                 'challenge_data' => $game(
-                    'Mémoire du 15 décembre',
-                    'À mi-chemin de Noël : un défi de mémoire s\'impose.',
-                    ['🔔', '🍫', '🧦', '🦌', '⭐', '🍷'],
+                    'puzzle',
+                    'Taquin de Noël',
+                    'Fais glisser les tuiles pour remettre le tableau dans l\'ordre.',
                 ),
                 'gift_title' => 'Le dîner aux chandelles',
                 'gift_message' => 'Moitié du chemin, 100 % des félicitations.',
@@ -214,6 +216,7 @@ class AdventCalendarSeeder extends Seeder
             [
                 'challenge_type' => CalendarDay::CHALLENGE_GAME,
                 'challenge_data' => $game(
+                    'memory',
                     'Mémoire du 19 décembre',
                     'Dernier défi de mémoire avant les fêtes. Concentration !',
                     ['🎄', '🥂', '🌟', '🧣', '🔔', '🍫'],
