@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import { index as calendarEdit } from '@/routes/calendar';
 import type { BreadcrumbItem } from '@/types';
 import type { CalendarDayItem } from '@/types';
@@ -21,11 +21,82 @@ const { days } = defineProps<{
     days: CalendarDayItem[];
 }>();
 
+const page = usePage();
+
+const isAdmin = computed(() => page.props.auth.user.role === 'admin');
+
 const openDayId = ref<number | null>(null);
 
 const openDay = computed(() => days.find((day) => day.id === openDayId.value) ?? null);
 
 const solvedCount = computed(() => days.filter((day) => day.status === 'solved').length);
+
+type TileSize = 'normal' | 'wide' | 'tall' | 'big';
+
+const SIZE_CLASSES: Record<TileSize, string> = {
+    normal: '',
+    wide: 'col-span-2',
+    tall: 'row-span-2',
+    big: 'col-span-2 row-span-2',
+};
+
+// PRNG déterministe : la disposition dépend de l'utilisateur et de l'année,
+// donc le même calendrier garde son aspect d'une visite à l'autre.
+function mulberry32(seed: number): () => number {
+    let state = seed >>> 0;
+
+    return () => {
+        state = (state + 0x6d2b79f5) >>> 0;
+        let mixed = Math.imul(state ^ (state >>> 15), 1 | state);
+        mixed = (mixed + Math.imul(mixed ^ (mixed >>> 7), 61 | mixed)) ^ mixed;
+
+        return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+type TiledDay = {
+    day: CalendarDayItem;
+    size: TileSize;
+    rotate: string;
+    emoji: string;
+};
+
+const deck = computed<TiledDay[]>(() => {
+    const seedBase = (page.props.auth.user.id * 7907 + new Date().getFullYear()) >>> 0;
+    const rand = mulberry32(seedBase);
+
+    // Mélange l'ordre d'affichage sans toucher aux données (case 24 reste
+    // la plus grande, façon veillée de Noël).
+    const shuffled = [...days];
+    for (let index = shuffled.length - 1; index > 0; index--) {
+        const swap = Math.floor(rand() * (index + 1));
+        [shuffled[index], shuffled[swap]] = [shuffled[swap]!, shuffled[index]!];
+    }
+
+    const sizes: TileSize[] = ['normal', 'wide', 'tall', 'normal', 'normal', 'big'];
+    const rotations = ['', 'rotate-1', '-rotate-1', 'rotate-2', '-rotate-2', ''];
+
+    return shuffled.map((day): TiledDay => ({
+        day,
+        size: day.day === 24 ? 'big' : sizes[Math.floor(rand() * sizes.length)]!,
+        rotate: day.status === 'locked' ? rotations[Math.floor(rand() * rotations.length)]! : '',
+        emoji: ['🎅', '⭐', '🔔', '❄️', '🕯️', '🦌', '🧦', '🍪'][Math.floor(rand() * 8)] ?? '⭐',
+    }));
+});
+
+const TILE_CLASS: Record<TileSize, string> = {
+    normal: 'rounded-2xl text-xl',
+    wide: 'rounded-2xl text-2xl',
+    tall: 'rounded-2xl text-2xl',
+    big: 'rounded-3xl text-4xl sm:text-5xl',
+};
+
+const NUMBER_CLASS: Record<TileSize, string> = {
+    normal: 'text-2xl',
+    wide: 'text-3xl',
+    tall: 'text-3xl',
+    big: 'text-6xl sm:text-7xl',
+};
 
 function formatDoorDate(day: CalendarDayItem): string {
     return new Date(day.available_at).toLocaleDateString('fr-FR', {
@@ -42,77 +113,111 @@ function open(day: CalendarDayItem): void {
 <template>
     <Head title="Calendrier de l'Avent" />
 
-    <div class="min-h-dvh bg-gradient-to-b from-emerald-950 via-emerald-900 to-red-950">
-        <div class="mx-auto w-full max-w-3xl px-4 pt-6 pb-10">
-            <header class="mb-6 text-center text-white">
-                <p class="text-3xl">🎄❄️🎄</p>
-                <h1 class="mt-2 text-2xl font-bold tracking-tight">
+    <div class="min-h-dvh bg-[radial-gradient(circle_at_20%_10%,#134e4a_0%,#022c22_45%,#450a0a_100%)]">
+        <div class="mx-auto w-full max-w-2xl px-4 pt-6 pb-10">
+            <header class="mb-8 text-center text-white">
+                <p class="text-4xl">
+                    <span class="inline-block -rotate-6">🎅</span>
+                    <span class="inline-block rotate-3">🎄</span>
+                    <span class="inline-block -rotate-3">❄️</span>
+                    <span class="inline-block rotate-6">🎁</span>
+                </p>
+                <h1 class="mt-3 font-serif text-3xl font-bold tracking-tight text-amber-100 drop-shadow-lg sm:text-4xl">
                     Calendrier de l'Avent
                 </h1>
-                <p class="mt-1 text-sm text-white/70">
+                <p class="mt-2 text-sm text-amber-100/70">
                     Ouvre une case par jour, résous le défi et découvre ton cadeau !
                 </p>
 
-                <div class="mx-auto mt-4 max-w-xs">
+                <div class="mx-auto mt-5 max-w-xs">
                     <div class="flex items-center justify-between text-xs text-white/80">
-                        <span>Cadeaux débloqués</span>
-                        <span class="font-semibold">{{ solvedCount }} / {{ days.length }}</span>
+                        <span>🎁 Cadeaux débloqués</span>
+                        <span class="font-semibold text-amber-300">{{ solvedCount }} / {{ days.length }}</span>
                     </div>
-                    <div class="mt-1 h-2 overflow-hidden rounded-full bg-white/20">
+                    <div class="mt-1 h-2.5 overflow-hidden rounded-full bg-white/15 ring-1 ring-white/20 ring-inset">
                         <div
-                            class="h-full rounded-full bg-amber-400 transition-all duration-500"
+                            class="h-full rounded-full bg-gradient-to-r from-amber-400 to-red-400 transition-all duration-700"
                             :style="{ width: `${days.length ? (solvedCount / days.length) * 100 : 0}%` }"
                         />
                     </div>
                 </div>
 
                 <Link
+                    v-if="isAdmin"
                     :href="calendarEdit()"
-                    class="mt-4 inline-flex items-center gap-1 rounded-full border border-white/30 px-3 py-1 text-xs text-white/80 transition-colors hover:bg-white/10"
+                    class="mt-5 inline-flex items-center gap-1 rounded-full border border-amber-200/40 bg-white/5 px-4 py-1.5 text-xs text-amber-100 transition-colors hover:bg-white/15"
                 >
                     ✏️ Personnaliser les cases
                 </Link>
             </header>
 
-            <div class="grid grid-cols-3 gap-2.5 sm:grid-cols-4 sm:gap-3 md:grid-cols-6">
+            <div class="grid auto-rows-[4.4rem] grid-cols-4 gap-2.5 [grid-auto-flow:dense] sm:auto-rows-[5.4rem] sm:gap-3">
                 <button
-                    v-for="day in days"
-                    :key="day.id"
+                    v-for="tile in deck"
+                    :key="tile.day.id"
                     type="button"
-                    :disabled="day.status === 'locked'"
-                    class="group relative aspect-square rounded-xl border shadow-md transition-all duration-200 sm:rounded-2xl"
-                    :class="{
-                        'cursor-not-allowed border-white/10 bg-white/10 text-white/40': day.status === 'locked',
-                        'border-amber-300/40 bg-gradient-to-br from-red-700 to-red-900 text-white hover:-rotate-1 hover:scale-105 active:scale-95': day.status === 'available' && day.day % 2 === 1,
-                        'border-lime-300/40 bg-gradient-to-br from-emerald-700 to-emerald-950 text-white hover:rotate-1 hover:scale-105 active:scale-95': day.status === 'available' && day.day % 2 === 0,
-                        'border-amber-200/60 bg-gradient-to-br from-amber-100 to-amber-200 text-amber-900 hover:scale-105 dark:from-amber-800 dark:to-amber-950 dark:text-amber-100': day.status === 'solved',
-                        'ring-2 ring-amber-400 ring-offset-2 ring-offset-emerald-950': day.is_today,
-                    }"
-                    :aria-label="day.status === 'locked'
-                        ? `Case ${day.day}, s'ouvre le ${formatDoorDate(day)}`
-                        : day.status === 'solved'
-                            ? `Case ${day.day}, cadeau débloqué`
-                            : `Ouvrir la case ${day.day}`"
-                    @click="open(day)"
+                    :disabled="tile.day.status === 'locked'"
+                    class="group relative border shadow-lg transition-all duration-200"
+                    :class="[
+                        SIZE_CLASSES[tile.size],
+                        TILE_CLASS[tile.size],
+                        tile.rotate,
+                        {
+                            'cursor-not-allowed border-white/10 bg-white/5 text-white/35 backdrop-blur-sm': tile.day.status === 'locked',
+                            'border-amber-200/50 bg-gradient-to-br from-red-600 to-red-900 text-white shadow-red-900/40 hover:scale-[1.04] hover:-rotate-1 active:scale-95': tile.day.status === 'available' && tile.day.day % 2 === 1,
+                            'border-lime-200/50 bg-gradient-to-br from-emerald-600 to-emerald-900 text-white shadow-emerald-900/40 hover:scale-[1.04] hover:rotate-1 active:scale-95': tile.day.status === 'available' && tile.day.day % 2 === 0,
+                            'border-amber-300/70 bg-gradient-to-br from-amber-200 to-amber-400 text-amber-950 hover:scale-[1.04] dark:from-amber-700 dark:to-amber-900 dark:text-amber-100': tile.day.status === 'solved',
+                            'ring-2 ring-amber-300 ring-offset-2 ring-offset-emerald-950': tile.day.is_today,
+                        },
+                    ]"
+                    :aria-label="tile.day.status === 'locked'
+                        ? `Case ${tile.day.day}, s'ouvre le ${formatDoorDate(tile.day)}`
+                        : tile.day.status === 'solved'
+                            ? `Case ${tile.day.day}, cadeau débloqué`
+                            : `Ouvrir la case ${tile.day.day}`"
+                    @click="open(tile.day)"
                 >
-                    <span class="absolute top-1.5 left-2 text-[10px] font-medium opacity-70 sm:top-2 sm:left-2.5 sm:text-xs">
-                        {{ formatDoorDate(day) }}
+                    <span
+                        v-if="tile.size !== 'normal'"
+                        class="absolute top-1.5 left-2 text-[10px] font-medium opacity-60 sm:top-2 sm:text-xs"
+                    >
+                        {{ formatDoorDate(tile.day) }}
                     </span>
 
-                    <span v-if="day.status === 'solved'" class="text-3xl drop-shadow sm:text-4xl">🎁</span>
-                    <span v-else-if="day.status === 'available'" class="text-2xl font-extrabold tracking-tight sm:text-3xl">
-                        {{ day.day }}
-                    </span>
-                    <span v-else class="flex flex-col items-center gap-0.5">
-                        <span class="text-xl">🔒</span>
-                        <span class="text-lg font-bold sm:text-xl">{{ day.day }}</span>
+                    <span v-if="tile.day.status === 'solved'" class="drop-shadow">
+                        <span :class="tile.size === 'big' ? 'text-6xl' : 'text-3xl'">🎁</span>
+                        <span class="sr-only">Cadeau débloqué</span>
                     </span>
 
                     <span
-                        v-if="day.status !== 'locked'"
-                        class="absolute bottom-1.5 left-0 w-full text-center text-[9px] uppercase tracking-wide opacity-0 transition-opacity duration-200 group-hover:opacity-80 sm:bottom-2 sm:text-[10px]"
+                        v-else-if="tile.day.status === 'available'"
+                        class="flex flex-col items-center justify-center gap-0.5"
+                        :class="tile.size === 'big' ? 'gap-1' : ''"
                     >
-                        {{ day.status === 'solved' ? 'Revoir' : 'Ouvrir' }}
+                        <span v-if="tile.size !== 'normal'" class="opacity-70">{{ tile.emoji }}</span>
+                        <span class="font-extrabold tracking-tight drop-shadow" :class="NUMBER_CLASS[tile.size]">
+                            {{ tile.day.day }}
+                        </span>
+                        <span
+                            v-if="tile.size === 'big'"
+                            class="text-xs font-medium text-amber-200"
+                        >
+                            Jour J !
+                        </span>
+                    </span>
+
+                    <span v-else class="flex flex-col items-center justify-center leading-tight">
+                        <span :class="tile.size === 'normal' ? 'text-[10px]' : 'text-sm'">🔒</span>
+                        <span class="font-bold" :class="NUMBER_CLASS[tile.size] === 'text-2xl' ? 'text-lg' : 'text-2xl'">
+                            {{ tile.day.day }}
+                        </span>
+                    </span>
+
+                    <span
+                        v-if="tile.day.status !== 'locked'"
+                        class="absolute bottom-1.5 left-0 w-full text-center text-[9px] uppercase tracking-widest opacity-0 transition-opacity duration-200 group-hover:opacity-80"
+                    >
+                        {{ tile.day.status === 'solved' ? 'Revoir' : 'Ouvrir' }}
                     </span>
                 </button>
             </div>
