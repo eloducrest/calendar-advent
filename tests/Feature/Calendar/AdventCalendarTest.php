@@ -164,7 +164,7 @@ test('each game variant is exposed to the calendar and solved the same way', fun
 });
 
 test('the mini-game variant can be changed from the edit screen', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->admin()->create();
     $day = CalendarDay::factory()->game()->create();
 
     $response = $this->actingAs($user)->patch(route('calendar.days.update', $day), [
@@ -187,7 +187,7 @@ test('the mini-game variant can be changed from the edit screen', function () {
 });
 
 test('the mini-game variant is required when editing a game day', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->admin()->create();
     $day = CalendarDay::factory()->game()->create();
 
     $response = $this->actingAs($user)
@@ -235,7 +235,7 @@ test('gift content stays hidden in the calendar until the challenge is solved', 
 
 test('users can edit a calendar day challenge and gift', function () {
     Storage::fake('public');
-    $user = User::factory()->create();
+    $user = User::factory()->admin()->create();
     $day = CalendarDay::factory()->riddle()->create();
 
     $response = $this->actingAs($user)->patch(route('calendar.days.update', $day), [
@@ -261,7 +261,7 @@ test('users can edit a calendar day challenge and gift', function () {
 });
 
 test('calendar day updates require fields matching the challenge type', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->admin()->create();
     $day = CalendarDay::factory()->riddle()->create();
 
     $response = $this->actingAs($user)
@@ -283,4 +283,59 @@ test('guests cannot access the calendar or edit pages', function () {
     $this->get(route('calendar.days.edit', $day))->assertRedirect(route('login'));
     $this->post(route('calendar.days.solve', $day))->assertRedirect(route('login'));
     $this->patch(route('calendar.days.update', $day))->assertRedirect(route('login'));
+});
+
+test('players can play the calendar but not reach the admin screens', function () {
+    $player = User::factory()->create();
+    $day = CalendarDay::factory()->create();
+
+    $this->actingAs($player)->get(route('calendar.index'))->assertOk();
+
+    foreach (['dashboard', 'calendar.edit'] as $route) {
+        $this->actingAs($player)->get(route($route))->assertRedirect(route('calendar.index'));
+    }
+
+    $this->actingAs($player)
+        ->get(route('calendar.days.edit', $day))
+        ->assertRedirect(route('calendar.index'));
+
+    $this->actingAs($player)
+        ->patch(route('calendar.days.update', $day), ['challenge_type' => 'riddle'])
+        ->assertRedirect(route('calendar.index'));
+});
+
+test('an admin keeps full access to the editing screens', function () {
+    $admin = User::factory()->admin()->create();
+    $day = CalendarDay::factory()->create();
+
+    $this->actingAs($admin)->get(route('dashboard'))->assertOk();
+    $this->actingAs($admin)->get(route('calendar.edit'))->assertOk();
+    $this->actingAs($admin)->get(route('calendar.days.edit', $day))->assertOk();
+});
+
+test('the unlock_all switch opens every door while preparing the calendar', function () {
+    config(['calendar.unlock_all' => true]);
+
+    $user = User::factory()->create();
+    $day = CalendarDay::factory()->locked()->create([
+        'challenge_data' => [
+            'question' => 'Qui ?',
+            'accepted_answers' => ['santa'],
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('calendar.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('days.0.status', 'available'));
+
+    $this->from(route('calendar.index'))
+        ->actingAs($user)
+        ->post(route('calendar.days.solve', $day), ['answer' => 'santa'])
+        ->assertRedirect(route('calendar.index'));
+
+    $this->assertDatabaseHas('calendar_day_user', [
+        'calendar_day_id' => $day->id,
+        'user_id' => $user->id,
+    ]);
 });

@@ -67,6 +67,11 @@ class CalendarDay extends Model
 
     public function isAvailableOn(CarbonImmutable $date): bool
     {
+        // Testing shortcut: every door opens when the master switch is on.
+        if ((bool) config('calendar.unlock_all')) {
+            return true;
+        }
+
         return $date->startOfDay()->greaterThanOrEqualTo($this->available_at);
     }
 }

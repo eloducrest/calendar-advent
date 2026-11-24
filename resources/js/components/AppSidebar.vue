@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import { BookOpen, CalendarDays, FolderGit2, Gift, LayoutGrid, Settings2 } from '@lucide/vue';
+import { computed } from 'vue';
+import { Link, usePage } from '@inertiajs/vue3';
+import { BookOpen, CalendarDays, FolderGit2, LayoutGrid, Settings2 } from '@lucide/vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -18,7 +19,9 @@ import { dashboard } from '@/routes';
 import { index as calendarIndex, edit as calendarEdit } from '@/routes/calendar';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
+const page = usePage();
+
+const fullNavItems: NavItem[] = [
     {
         title: 'Calendrier',
         href: calendarIndex(),
@@ -35,6 +38,19 @@ const mainNavItems: NavItem[] = [
         icon: Settings2,
     },
 ];
+
+const playerNavItems: NavItem[] = [
+    {
+        title: 'Calendrier',
+        href: calendarIndex(),
+        icon: CalendarDays,
+    },
+];
+
+// Les joueurs ne voient que le calendrier ; l'administration reste admin.
+const mainNavItems = computed<NavItem[]>(() =>
+    page.props.auth.user.role === 'admin' ? fullNavItems : playerNavItems,
+);
 
 const footerNavItems: NavItem[] = [
     {
