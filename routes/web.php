@@ -3,9 +3,16 @@
 use App\Http\Controllers\Calendar\AdventCalendarController;
 use App\Http\Controllers\Calendar\CalendarDayController;
 use App\Http\Middleware\EnsureUserIsAdmin;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'Welcome')->name('home');
+// The welcome page is gone: guests go straight to the login screen,
+// logged-in users land on their calendar.
+Route::get('/', function () {
+    return Auth::check()
+        ? redirect()->route('calendar.index')
+        : redirect()->route('login');
+})->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::inertia('dashboard', 'Dashboard')
