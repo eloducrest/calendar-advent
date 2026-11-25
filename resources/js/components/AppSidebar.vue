@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, CalendarDays, FolderGit2, LayoutGrid, Settings2 } from '@lucide/vue';
+import { BookOpen, CalendarDays, FolderGit2, LayoutGrid, Settings2, Users } from '@lucide/vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { index as calendarIndex, edit as calendarEdit } from '@/routes/calendar';
+import { index as playersIndex } from '@/routes/players';
 import type { NavItem } from '@/types';
 
 const page = usePage();
@@ -36,6 +37,11 @@ const fullNavItems: NavItem[] = [
         title: 'Éditer les cases',
         href: calendarEdit(),
         icon: Settings2,
+    },
+    {
+        title: 'Joueurs',
+        href: playersIndex(),
+        icon: Users,
     },
 ];
 

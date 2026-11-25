@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Calendar\AdventCalendarController;
 use App\Http\Controllers\Calendar\CalendarDayController;
+use App\Http\Controllers\PlayerController;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -24,6 +25,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->name('calendar.days.solve');
 
     Route::middleware(EnsureUserIsAdmin::class)->group(function (): void {
+        Route::get('players', [PlayerController::class, 'index'])->name('players.index');
+        Route::post('players', [PlayerController::class, 'store'])->name('players.store');
+
         Route::get('calendar/edit', [CalendarDayController::class, 'index'])->name('calendar.edit');
         Route::get('calendar/days/{day}/edit', [CalendarDayController::class, 'edit'])->name('calendar.days.edit');
         Route::patch('calendar/days/{day}', [CalendarDayController::class, 'update'])->name('calendar.days.update');

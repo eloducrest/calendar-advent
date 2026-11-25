@@ -161,7 +161,8 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Registration is disabled: player accounts are created by the
+        // admin from the "Joueurs" screen.
         Features::resetPasswords(),
         Features::emailVerification(),
         Features::twoFactorAuthentication([
